@@ -263,6 +263,8 @@ class Index extends Twitter {
 			<span class="tweets-primary-count-num">${this.renderNumber(tweetCount)}</span> tweet${tweetCount !== 1 ? "s" : ""}
 		</h2>
 
+		<p>This is an archive of @JoeGlombek's Twitter/X activity prior to the deletion of the account.</p>
+
 		<is-land on:visible on:save-data="false">
 			<template data-island>
 				<h2>Search Tweets:</h2>

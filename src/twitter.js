@@ -40,12 +40,12 @@ class Twitter {
 		let haystack = (tweet.full_text || "");
 
 		// transform text before search
-		if(before && typeof before === "function") {
+		if (before && typeof before === "function") {
 			haystack = before(haystack);
 		}
 
 		let needles = needle;
-		if(!Array.isArray(needle)) {
+		if (!Array.isArray(needle)) {
 			needles = [needle];
 		}
 		return needles.filter(needle => !!haystack.match(new RegExp("\\b" + needle + "\\b", "g" + (!caseSensitive ? "i" : "")))).length > 0;
@@ -56,7 +56,7 @@ class Twitter {
 			return this.isSearchMatch(tweet, searchObj.term, searchObj.caseSensitive, searchObj.before) &&
 				!this.isRetweet(tweet) &&
 				(searchObj.includeReplies || !this.isMention(tweet) && !this.isReply(tweet));
-		}).sort(function(a,b) {
+		}).sort(function (a, b) {
 			return b.date - a.date;
 		});
 	}
@@ -64,8 +64,8 @@ class Twitter {
 	getLinkUrls(tweet) {
 		let links = [];
 
-		if(tweet.entities && tweet.entities.urls) {
-			for(let url of tweet.entities.urls) {
+		if (tweet.entities && tweet.entities.urls) {
+			for (let url of tweet.entities.urls) {
 				try {
 					let urlObj = new URL(url.expanded_url ?? url.url);
 					let parsedDomain = parseDomain(urlObj.host);
@@ -81,8 +81,8 @@ class Twitter {
 						origin: urlObj.origin,
 						domain: domain
 					});
-				} catch(e) {
-					console.log( e );
+				} catch (e) {
+					console.log(e);
 				}
 			}
 		}
@@ -119,12 +119,12 @@ class Twitter {
 		let targetUrl = expandedUrl;
 
 		// Links to my tweets
-		if(displayUrl.startsWith(`https://twitter.com/${metadata.username}/status/`)) {
+		if (displayUrl.startsWith(`https://twitter.com/${metadata.username}/status/`)) {
 			targetUrl = `/${expandedUrl.substr(`https://twitter.com/${metadata.username}/status/`.length)}`;
 		}
 
 		// Links to other tweets
-		if(displayUrl.startsWith("https://twitter.com") && displayUrl.indexOf("/status/") > -1) {
+		if (displayUrl.startsWith("https://twitter.com") && displayUrl.indexOf("/status/") > -1) {
 			displayUrl = displayUrl.substring("https://twitter.com/".length);
 			displayUrl = displayUrl.replace("/status/", "/");
 			displayUrl = `@${displayUrl}`;
@@ -133,13 +133,13 @@ class Twitter {
 			// });
 			className = "tweet-username";
 		} else {
-			if(displayUrl.startsWith("http://")) {
+			if (displayUrl.startsWith("http://")) {
 				displayUrl = displayUrl.substring("http://".length);
 			}
-			if(displayUrl.startsWith("https://")) {
+			if (displayUrl.startsWith("https://")) {
 				displayUrl = displayUrl.substring("https://".length);
 			}
-			if(displayUrl.startsWith("www.")) {
+			if (displayUrl.startsWith("www.")) {
 				displayUrl = displayUrl.substring("www.".length);
 			}
 		}
@@ -185,30 +185,30 @@ class Twitter {
 	}
 
 	async getMedia(tweet) {
-		let {transform: twitterLink} = await import("@tweetback/canonical");
+		let { transform: twitterLink } = await import("@tweetback/canonical");
 		let medias = [];
 		let textReplacements = new Map();
 
 		// linkify urls
-		if( tweet.entities ) {
-			for(let url of tweet.entities.urls) {
+		if (tweet.entities) {
+			for (let url of tweet.entities.urls) {
 				// Remove photo URLs
-				if(url.expanded_url && url.expanded_url.indexOf(`/${tweet.id}/photo/`) > -1) {
+				if (url.expanded_url && url.expanded_url.indexOf(`/${tweet.id}/photo/`) > -1) {
 					textReplacements.set(url.url, { html: "" });
 				} else {
-					let {targetUrl, className, displayUrl} = this.getUrlObject(url);
+					let { targetUrl, className, displayUrl } = this.getUrlObject(url);
 					targetUrl = twitterLink(targetUrl);
 
 					textReplacements.set(url.url, { html: `<a href="${targetUrl}" class="${className}" data-pagefind-index-attrs="href">${displayUrl}</a>` });
 
 					// Add opengraph preview
-					if(targetUrl.startsWith("https://") && !targetUrl.startsWith("https://twitter.com/")) {
+					if (targetUrl.startsWith("https://") && !targetUrl.startsWith("https://twitter.com/")) {
 						medias.push(`<template data-island><a href="${targetUrl}"><img src="https://v1.opengraph.11ty.dev/${encodeURIComponent(targetUrl)}/small/onerror/" alt="OpenGraph image for ${displayUrl}" loading="lazy" decoding="async" width="375" height="197" class="tweet-media tweet-media-og" onerror="this.parentNode.remove()"></a></template>`);
 					}
 				}
 			}
 
-			for(let mention of tweet.entities.user_mentions) {
+			for (let mention of tweet.entities.user_mentions) {
 				textReplacements.set(mention.screen_name, {
 					regex: new RegExp(`@${mention.screen_name}`, "i"),
 					html: `<a href="${twitterLink(`https://twitter.com/${mention.screen_name}/`)}" class="tweet-username h-card">@<span class="p-nickname">${mention.screen_name}</span></a>`,
@@ -239,7 +239,7 @@ class Twitter {
 							return parseInt(b.bitrate) - parseInt(a.bitrate);
 						});
 
-						if(videoResults.length === 0) {
+						if (videoResults.length === 0) {
 							continue;
 						}
 
@@ -331,7 +331,7 @@ class Twitter {
 			<div class="tweet-text e-content"${options.attributes || ""}>${await this.renderFullText(tweet, options)}</div>
 			<span class="tweet-metadata">
 				${!options.hidePermalink ? `<a href="/${tweet.id_str}/" class="tag tag-naked">Permalink</a>` : ""}
-				<a href="https://twitter.com/${metadata.username}/status/${tweet.id_str}" class="tag tag-icon u-url" data-pagefind-index-attrs="href"><span class="sr-only">On twitter.com </span><img src="${this.avatarUrl("https://twitter.com/")}" alt="Twitter logo" width="27" height="27"></a>
+				<!--<a href="https://twitter.com/${metadata.username}/status/${tweet.id_str}" class="tag tag-icon u-url" data-pagefind-index-attrs="href"><span class="sr-only">On twitter.com </span><img src="${this.avatarUrl("https://twitter.com/")}" alt="Twitter logo" width="27" height="27"></a>-->
 				${!this.isReply(tweet) ? (this.isRetweet(tweet) ? `<span class="tag tag-retweet">Retweet</span>` : (this.isMention(tweet) ? `<span class="tag">Mention</span>` : "")) : ""}
 				${!this.isRetweet(tweet) ? `<a href="/" class="tag tag-naked tag-lite tag-avatar"><img src="${metadata.avatar}" width="52" height="52" alt="${metadata.username}’s avatar" class="tweet-avatar"></a>` : ""}
 				${options.showPopularity && !this.isRetweet(tweet) ? `

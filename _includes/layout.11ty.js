@@ -59,6 +59,7 @@ module.exports = async function(data) {
 			<h1 class="tweets-title"><a href="/"><img src="${metadata.avatar}" width="52" height="52" alt="${data.metadata.username}’s avatar" class="tweet-avatar">${data.metadata.username}’s Twitter Archive</a>${titleTweetNumberStr}</h1>
 			${!data.hideHeaderTweetsLink ? `<ul class="tweets-nav">
 				<li><a rel="home" href="${data.metadata.homeUrl}">← ${data.metadata.homeLabel}</a></li>
+				<li><a rel="me" href="https://umbracocommunity.social/@joe">Joe on Mastodon</a></li>
 			</ul>`: ""}
 			${navHtml}
 		</header>
