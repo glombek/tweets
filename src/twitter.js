@@ -152,15 +152,34 @@ class Twitter {
 
 	async getImage(remoteImageUrl, alt) {
 		// TODO the await use here on eleventyImg could be improved
-		let stats = await eleventyImg(remoteImageUrl, ELEVENTY_IMG_OPTIONS);
+
+		// Try to get image locally first
+		let localPath = remoteImageUrl.replace('https://pbs.twimg.com/media/', './_orig_media/tweets_media/');
+
+		let stats = undefined;
+		try {
+			stats = await eleventyImg(localPath, ELEVENTY_IMG_OPTIONS);
+		} catch (e) {
+			console.log("Image request error", e.message);
+			stats = await eleventyImg(remoteImageUrl, ELEVENTY_IMG_OPTIONS);
+		}
 		let imgRef = stats.jpeg[0];
 		return `<a href="${imgRef.url}"><img src="${imgRef.url}" width="${imgRef.width}" height="${imgRef.height}" alt="${escapeAttribute(alt) || "oh my god twitter doesn’t include alt text from images in their API"}" class="tweet-media u-featured" onerror="fallbackMedia(this)" loading="lazy" decoding="async"></a>`;
 	}
 
 	async saveVideo(remoteVideoUrl, localVideoPath) {
+		// Try to get image locally first
+		let localPath = remoteVideoUrl.replace(/.*\//g, './_orig_media/tweets_media/').replace(/\?.*$/g, '');
+		console.log(localPath);
+		if (fs.existsSync(localPath)) {
+			console.log("Exists!");
+			fs.copyFileSync(localPath, localVideoPath);
+			return;
+		}
+
 		let videoBuffer = await eleventyFetch(remoteVideoUrl, ELEVENTY_VIDEO_OPTIONS);
 
-		if(!fs.existsSync(localVideoPath)) {
+		if (!fs.existsSync(localVideoPath)) {
 			await fsp.writeFile(localVideoPath, videoBuffer);
 		}
 	}
@@ -228,16 +247,21 @@ class Twitter {
 
 						try {
 							let videoUrl = remoteVideoUrl;
-							let posterStats = await eleventyImg(media.media_url_https, ELEVENTY_IMG_OPTIONS);
-							if(!this.isRetweet(tweet)) {
+							let imgRef = undefined;
+							try {
+								let posterStats = await eleventyImg(media.media_url_https, ELEVENTY_IMG_OPTIONS);
+								imgRef = posterStats.jpeg[0];
+
+							} catch { }
+
+							if (!this.isRetweet(tweet)) {
 								videoUrl = `/video/${tweet.id}.mp4`;
 
 								await this.saveVideo(remoteVideoUrl, `.${videoUrl}`)
 							}
 
-							let imgRef = posterStats.jpeg[0];
-							medias.push(`<video muted controls ${media.type === "animated_gif" ? "loop" : ""} src="${videoUrl}" poster="${imgRef.url}" class="tweet-media u-video"></video>`);
-						} catch(e) {
+							medias.push(`<video muted controls ${media.type === "animated_gif" ? "loop" : ""} src="${videoUrl}" poster="${imgRef ? imgRef.url : null}" class="tweet-media u-video"></video>`);
+						} catch (e) {
 							console.log("Video request error", e.message);
 							medias.push(`<a href="${remoteVideoUrl}">${remoteVideoUrl}</a>`);
 						}
@@ -288,7 +312,7 @@ class Twitter {
 		return `${d.getFullYear()} ${months[d.getMonth()]} ${d.getDate()}`;
 	}
 
-  renderPercentage(count, total) {
+	renderPercentage(count, total) {
 		return `${(count * 100 / total).toFixed(1)}%`;
 	}
 
@@ -302,7 +326,7 @@ class Twitter {
 
 		let shareCount = parseInt(tweet.retweet_count, 10) + (tweet.quote_count ? tweet.quote_count : 0);
 
-    return `<li id="${tweet.id_str}" class="tweet h-entry${options.class ? ` ${options.class}` : ""}${this.isReply(tweet) && tweet.in_reply_to_screen_name !== metadata.username ? " is_reply " : ""}${this.isRetweet(tweet) ? " is_retweet" : ""}${this.isMention(tweet) ? " is_mention" : ""}" data-pagefind-index-attrs="id">
+		return `<li id="${tweet.id_str}" class="tweet h-entry${options.class ? ` ${options.class}` : ""}${this.isReply(tweet) && tweet.in_reply_to_screen_name !== metadata.username ? " is_reply " : ""}${this.isRetweet(tweet) ? " is_retweet" : ""}${this.isMention(tweet) ? " is_mention" : ""}" data-pagefind-index-attrs="id">
 		${this.isReply(tweet) ? `<a href="${tweet.in_reply_to_screen_name !== metadata.username ? twitterLink(`https://twitter.com/${tweet.in_reply_to_screen_name}/status/${tweet.in_reply_to_status_id_str}`) : `/${tweet.in_reply_to_status_id_str}/`}" class="tweet-pretext u-in-reply-to">…in reply to @${tweet.in_reply_to_screen_name}</a>` : ""}
 			<div class="tweet-text e-content"${options.attributes || ""}>${await this.renderFullText(tweet, options)}</div>
 			<span class="tweet-metadata">
@@ -316,11 +340,11 @@ class Twitter {
 				`.trim() : ""}
 				${tweet.date ? `<time class="tag tag-naked tag-lite dt-published" datetime="${tweet.date.toISOString()}">${this.renderDate(tweet.date)}</time>` : ""}
 				${!this.isRetweet(tweet) ?
-					`<span class="tag tag-naked tag-lite${!options.showSentiment || sentimentValue === 0 ? " sr-only" : ""}">Mood ` +
-						(sentimentValue > 0 ? "+" : "") +
-						`<strong class="tweet-sentiment">${sentimentValue}</strong>` +
-						(sentimentValue > 0 ? " 🙂" : (sentimentValue < 0 ? " 🙁" : "")) +
-					"</span>" : ""}
+				`<span class="tag tag-naked tag-lite${!options.showSentiment || sentimentValue === 0 ? " sr-only" : ""}">Mood ` +
+				(sentimentValue > 0 ? "+" : "") +
+				`<strong class="tweet-sentiment">${sentimentValue}</strong>` +
+				(sentimentValue > 0 ? " 🙂" : (sentimentValue < 0 ? " 🙁" : "")) +
+				"</span>" : ""}
 			</span>
 		</li>`;
 
